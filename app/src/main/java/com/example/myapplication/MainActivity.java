@@ -1,17 +1,13 @@
 package com.example.myapplication;
 
 import android.os.Bundle;
-
-import androidx.activity.EdgeToEdge;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
-
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AppCompatActivity;
+
+import java.util.ArrayList;
 import java.util.List;
 
 import retrofit2.Call;
@@ -22,40 +18,52 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 public class MainActivity extends AppCompatActivity {
 
-    List<Notatki> listaNotatki;
-    ListView listView;
-    ArrayAdapter<Notatki> arrayAdapter;
+    private ArrayList<String> listaNotatek;
+    private ArrayAdapter<String> arrayAdapter;
+    private ListView listView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-            return insets;
-        });
 
         listView = findViewById(R.id.listView);
 
+        listaNotatek = new ArrayList<>();
+
+        arrayAdapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_list_item_1,
+                listaNotatek
+        );
+
+        listView.setAdapter(arrayAdapter);
 
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl("https://raw.githubusercontent.com/chinczyk001/bazaNotatekJson/main/")
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
+
         JsonPlaceHolder jsonPlaceHolder = retrofit.create(JsonPlaceHolder.class);
+
         Call<List<Notatki>> call = jsonPlaceHolder.getNotatki();
+
         call.enqueue(new Callback<List<Notatki>>() {
             @Override
             public void onResponse(Call<List<Notatki>> call, Response<List<Notatki>> response) {
-                if(!response.isSuccessful()){
-                    Toast.makeText(MainActivity.this,
-                            response.code(),
-                            Toast.LENGTH_SHORT).show();
-                    return;
+                if (response.isSuccessful()) {
+                    listaNotatek.clear();
+                    for (Notatki notatka : response.body()) {
+                        String tekst =
+                                "Tytuł: " + notatka.getTytulNotatki()
+                                        + "\nTreść: " + notatka.getTrescNotatki()
+                                        + "\nData: " + notatka.getDataStworzeniaNotatki();
+                        listaNotatek.add(tekst);
+                    }
+
+                    arrayAdapter.notifyDataSetChanged();
+
                 }
-                listaNotatki = response.body();
             }
 
             @Override
